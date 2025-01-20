@@ -5,7 +5,8 @@ import 'add_edit_review_screen.dart';
 class MovieReviewsScreen extends StatefulWidget {
   final String username;
 
-  const MovieReviewsScreen({Key? key, required this.username}) : super(key: key);
+  const MovieReviewsScreen({Key? key, required this.username})
+      : super(key: key);
 
   @override
   _MovieReviewsScreenState createState() => _MovieReviewsScreenState();
@@ -34,7 +35,7 @@ class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
       _loadReviews();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menghapus review')),
+        const SnackBar(content: Text('Gagal menghapus review')),
       );
     }
   }
@@ -43,15 +44,16 @@ class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Review Film Saya'),
+        title: const Text('Review Film Saya'),
         actions: [
           IconButton(
-            icon: Icon(Icons.add),
+            icon: const Icon(Icons.add),
             onPressed: () async {
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AddEditReviewScreen(username: widget.username),
+                  builder: (context) =>
+                      AddEditReviewScreen(username: widget.username),
                 ),
               );
               if (result == true) _loadReviews();
@@ -60,38 +62,80 @@ class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
         ],
       ),
       body: _reviews.isEmpty
-          ? Center(child: Text('Belum ada review. Tambahkan sekarang!'))
+          ? const Center(child: Text('Belum ada review. Tambahkan sekarang!'))
           : ListView.builder(
               itemCount: _reviews.length,
               itemBuilder: (context, index) {
                 final review = _reviews[index];
-                return ListTile(
-                  title: Text(review['title']),
-                  subtitle: Text('${review['rating']} / 10\n${review['comment']}'),
-                  isThreeLine: true,
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.edit),
-                        onPressed: () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AddEditReviewScreen(
-                                username: widget.username,
-                                review: review,
+
+                print('imageUri: ${review['imageUri']}');
+
+                return Card(
+                  margin: const EdgeInsets.all(12.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [Image.network(
+                                review['imageUri'],
+                                width: 100,
+                                height: 200,
+                                errorBuilder: (context, error, stackTrace) {
+                                  print('Error loading image: $error');
+
+                                  return const Icon(Icons.broken_image,
+                                      size: 100); // Fallback
+                                },
                               ),
+                        const SizedBox(height: 10), // Spasi antara elemen
+                        Text(
+                          review['title'],
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          review['comment'],
+                          style: const TextStyle(fontSize: 14),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          '${review['rating']} / 10',
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () async {
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => AddEditReviewScreen(
+                                      username: widget.username,
+                                      review: review,
+                                    ),
+                                  ),
+                                );
+                                if (result == true) _loadReviews();
+                              },
                             ),
-                          );
-                          if (result == true) _loadReviews();
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () => _deleteReview(review['_id']),
-                      ),
-                    ],
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () => _deleteReview(review['_id']),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
