@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:movie_reviews/aws_s3_service.dart';
 
 class ApiService {
   static const String baseUrl =
-      'https://crudcrud.com/api/a3aa26d01ca440a3bd72b5c65eefe8d2';
+      'https://crudcrud.com/api/04eb4cbaf5b349ba99b39cc93db14814';
 
   Future<bool> registerUser(String username, String password) async {
     try {
@@ -63,33 +65,26 @@ class ApiService {
 
   Future<String?> _uploadImage(File image) async {
     try {
-      print('Uploading image to imgbb...');
+      print('Uploading image to aws s3...');
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse(
-            'https://api.imgbb.com/1/upload?key=de5420226e97640a2c24f9396ad9eea3'),
-      );
-      request.files.add(await http.MultipartFile.fromPath(
-        'image',
-        image.path,
-        filename: image.path.split('/').last,
-      ));
+      String fileName = image.path.split('/').last;
+      String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      fileName = '$timestamp-$fileName';
 
-      final response = await request.send();
-      if (response.statusCode == 200) {
-        final responseBody = await response.stream.bytesToString();
-        final json = jsonDecode(responseBody);
-
-        print('Response from imgbb: $json');
-
-        print('Image uploaded to imgbb: ${json['data']['url']}');
-
-        return json['data']['url']; // Get the image URL from imgbb response
-      } else {
-        print('Failed to upload image to imgbb: ${response.statusCode}');
-        return null;
+      if (!fileName.toLowerCase().endsWith('.jpg')) {
+        fileName = '${fileName.split('.').first}.jpg';
       }
+
+      await s3Storage.putObject(
+        'jpn-bucket',
+        'movies/$fileName',
+        image.openRead().cast<Uint8List>(),
+        metadata: {'Content-Type': 'image/jpeg'},
+        onProgress: (bytes) => print('$bytes uploaded'),
+      );
+
+      print('Image uploaded to aws s3');
+      return 'https://jpn-bucket.s3-ap-southeast-2.amazonaws.com/movies/$fileName';
     } catch (e) {
       print('Error uploading image to imgbb: $e');
       return null;
@@ -99,9 +94,8 @@ class ApiService {
   Future<bool> addReview(String username, String title, int rating,
       String comment, File image) async {
     try {
-      final uri = await _uploadImage(image);
-      final imageUri = _replaceImageUri(uri!);
-      
+      final imageUri = await _uploadImage(image);
+
       print('Adding review with image: $imageUri');
 
       final response = await http.post(
@@ -125,15 +119,15 @@ class ApiService {
   }
 
   Future<bool> updateReviewWithImage(
-      String id, String title, int rating, String comment, File image) async {
+      String id, String username, String title, int rating, String comment, File image) async {
     try {
-      final uri = await _uploadImage(image);
-      final imageUri = _replaceImageUri(uri!);
+      final imageUri = await _uploadImage(image);
 
       final response = await http.put(
         Uri.parse('$baseUrl/reviews/$id'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
+          'username': username,
           'title': title,
           'rating': rating,
           'comment': comment,
@@ -150,12 +144,14 @@ class ApiService {
   }
 
   Future<bool> updateReview(
-      String id, String title, int rating, String comment, String image) async {
+      String id, String username, String title, int rating, String comment, String image) async {
     try {
       final response = await http.put(
         Uri.parse('$baseUrl/reviews/$id'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
+          'id': id,
+          'username': username,
           'title': title,
           'rating': rating,
           'comment': comment,
@@ -179,9 +175,5 @@ class ApiService {
       print('Error deleting review: $e');
       return false;
     }
-  }
-
-  String _replaceImageUri(String imageUri) {
-    return imageUri.replaceAll('https://i.ibb.co.com/', 'https://i.ibb.co/');
   }
 }

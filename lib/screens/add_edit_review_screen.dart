@@ -18,10 +18,9 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
   final _ratingController = TextEditingController();
   final _commentController = TextEditingController();
   final _apiService = ApiService();
-  File? _selectedImage; // Untuk menyimpan gambar yang dipilih
-  final _picker = ImagePicker(); // Image picker instance
-  String? _existingImageUrl; // URL gambar yang ada (jika dalam mode edit)
-
+  File? _selectedImage;
+  final _picker = ImagePicker();
+  String? _existingImageUrl;
   @override
   void initState() {
     super.initState();
@@ -29,7 +28,7 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
       _titleController.text = widget.review!['title'];
       _ratingController.text = widget.review!['rating'].toString();
       _commentController.text = widget.review!['comment'];
-      _existingImageUrl = widget.review!['imageUrl']; // Mengambil URL gambar yang ada
+      _existingImageUrl = widget.review!['imageUrl']; 
     }
   }
 
@@ -57,7 +56,7 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
 
     bool success;
     if (widget.review == null) {
-      // Tambah review baru
+
       if (_selectedImage == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Harap pilih gambar untuk ulasan baru.')),
@@ -66,13 +65,10 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
       }
       success = await _apiService.addReview(widget.username, title, rating, comment, _selectedImage!);
     } else {
-      // Edit review
       if (_selectedImage != null) {
-        // Jika ada gambar baru, kirim gambar baru
-        success = await _apiService.updateReviewWithImage(widget.review!['_id'], title, rating, comment, _selectedImage!);
+        success = await _apiService.updateReviewWithImage(widget.review!['_id'], widget.username, title, rating, comment, _selectedImage!);
       } else {
-        // Jika tidak ada gambar baru, gunakan gambar yang lama
-        success = await _apiService.updateReview(widget.review!['_id'], title, rating, comment, _existingImageUrl!);
+        success = await _apiService.updateReview(widget.review!['_id'], widget.username, title, rating, comment, _existingImageUrl!);
       }
     }
 
