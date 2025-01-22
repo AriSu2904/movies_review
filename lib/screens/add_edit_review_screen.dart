@@ -104,7 +104,6 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
               TextField(
                 controller: _commentController,
                 decoration: const InputDecoration(labelText: 'Komentar'),
-                maxLines: 3,
               ),
               const SizedBox(height: 10),
               _selectedImage != null

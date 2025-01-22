@@ -6,7 +6,7 @@ import 'package:movie_reviews/aws_s3_service.dart';
 
 class ApiService {
   static const String baseUrl =
-      'https://crudcrud.com/api/04eb4cbaf5b349ba99b39cc93db14814';
+      'https://crudcrud.com/api/57af4124f0fe4b57beb38e81c2e898cb';
 
   Future<bool> registerUser(String username, String password) async {
     try {
@@ -69,7 +69,7 @@ class ApiService {
 
       String fileName = image.path.split('/').last;
       String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      fileName = '$timestamp-$fileName';
+      fileName = '$timestamp' "_" '$fileName';
 
       if (!fileName.toLowerCase().endsWith('.jpg')) {
         fileName = '${fileName.split('.').first}.jpg';
@@ -84,7 +84,7 @@ class ApiService {
       );
 
       print('Image uploaded to aws s3');
-      return 'https://jpn-bucket.s3-ap-southeast-2.amazonaws.com/movies/$fileName';
+      return 'https://jpn-bucket.s3.ap-southeast-2.amazonaws.com/movies/$fileName';
     } catch (e) {
       print('Error uploading image to imgbb: $e');
       return null;

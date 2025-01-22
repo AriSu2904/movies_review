@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movie_reviews/shared_preferences.helper.dart';
 import '../api_service.dart';
 import 'add_edit_review_screen.dart';
 
@@ -15,17 +16,26 @@ class MovieReviewsScreen extends StatefulWidget {
 class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
   final _apiService = ApiService();
   List<dynamic> _reviews = [];
+  Set<String> _likedReviews = {}; // Menyimpan status "like" secara lokal
 
   @override
   void initState() {
     super.initState();
     _loadReviews();
+    _loadLikedReviews(); // Memuat data "like" dari SharedPreferences
   }
 
   Future<void> _loadReviews() async {
     final reviews = await _apiService.getReviews(widget.username);
     setState(() {
       _reviews = reviews;
+    });
+  }
+
+  Future<void> _loadLikedReviews() async {
+    final likedReviews = await SharedPreferencesHelper.getLikedReviews();
+    setState(() {
+      _likedReviews = likedReviews;
     });
   }
 
@@ -67,8 +77,7 @@ class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
               itemCount: _reviews.length,
               itemBuilder: (context, index) {
                 final review = _reviews[index];
-
-                print('imageUri: ${review['imageUri']}');
+                final isLiked = _likedReviews.contains(review['_id']); // Cek status "like"
 
                 return Card(
                   margin: const EdgeInsets.all(12.0),
@@ -76,18 +85,15 @@ class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [Image.network(
-                                review['imageUri'],
-                                width: 100,
-                                height: 200,
-                                errorBuilder: (context, error, stackTrace) {
-                                  print('Error loading image: $error');
-
-                                  return const Icon(Icons.broken_image,
-                                      size: 100); // Fallback
-                                },
-                              ),
-                        const SizedBox(height: 10), // Spasi antara elemen
+                      children: [
+                        Image.network(
+                          review['imageUri'],
+                          fit: BoxFit.fill,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.broken_image, size: 100);
+                          },
+                        ),
+                        const SizedBox(height: 10),
                         Text(
                           review['title'],
                           style: const TextStyle(
@@ -113,6 +119,26 @@ class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            IconButton(
+                              icon: Icon(
+                                isLiked ? Icons.thumb_up : Icons.thumb_up_off_alt,
+                                color: isLiked ? Colors.blue : Colors.grey,
+                              ),
+                              onPressed: () async {
+                                if (isLiked) {
+                                  await SharedPreferencesHelper.unlikeReview(review['_id']);
+                                } else {
+                                  await SharedPreferencesHelper.likeReview(review['_id']);
+                                }
+                                setState(() {
+                                  if (isLiked) {
+                                    _likedReviews.remove(review['_id']);
+                                  } else {
+                                    _likedReviews.add(review['_id']);
+                                  }
+                                });
+                              },
+                            ),
                             IconButton(
                               icon: const Icon(Icons.edit),
                               onPressed: () async {
